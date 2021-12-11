@@ -57,7 +57,7 @@ def read_dataset(file_path, output_path, prompt_id, maxlen, to_tokenize, to_lowe
                 scores.append(float(line[score_idx]))
                 prompt_ids.append(essay_set)
 
-    logger.info('Saving essays to: ' + essays_path)
+    # logger.info('Saving essays to: ' + essays_path)
     # np.savetxt(essays_path, np.array(essays, dtype=object), fmt='%s')
     logger.info('Total number of essays: %d' % len(essays))
 
