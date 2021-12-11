@@ -21,7 +21,7 @@ from nea.quadratic_weighted_kappa import linear_weighted_kappa as lwk
 logger = logging.getLogger(__name__)
 
 
-def set_logger(out_dir=None):
+def set_logger(config):
     console_format = BColors.OKBLUE + '[%(levelname)s]' + BColors.ENDC + ' (%(name)s) %(message)s'
     # datefmt='%Y-%m-%d %Hh-%Mm-%Ss'
     logger = logging.getLogger()
@@ -30,9 +30,9 @@ def set_logger(out_dir=None):
     console.setLevel(logging.DEBUG)
     console.setFormatter(logging.Formatter(console_format))
     logger.addHandler(console)
-    if out_dir:
+    if config.out_dir:
         file_format = '[%(levelname)s] (%(name)s) %(message)s'
-        log_file = logging.FileHandler(out_dir + '/log.txt', mode='w')
+        log_file = logging.FileHandler(config.out_dir + f'/log{config.prompt_id}_{config.fold_num}.txt', mode='w')
         log_file.setLevel(logging.DEBUG)
         log_file.setFormatter(logging.Formatter(file_format))
         logger.addHandler(log_file)
@@ -184,7 +184,12 @@ def get_cnn_padding_size(input_size, output_size, kernel_size, stride):
 
 class Configuration(object):
     def __init__(self, args):
-        self.model_name = args.model_type  # default , could be change from outside
+        self.fold_num = args.fold_num
+        self.data_path = args.data_path
+        self.train_path = args.data_path + f'/fold_{args.fold_num}/train.tsv'
+        self.dev_path = args.data_path + f'/fold_{args.fold_num}/dev.tsv'
+        self.test_path = args.data_path + f'/fold_{args.fold_num}/test.tsv'
+        self.model_name = args.model_type
         self.out_dir = args.out_dir_path
         self.save_path = args.out_dir_path + '/saved_dict/' + self.model_name + '.pth'
         self.vis_path = args.out_dir_path + '/log_tensorboard/' + self.model_name
@@ -215,7 +220,7 @@ class Configuration(object):
                 logger.warning('The vocabulary includes %i words which is different from given: %i'
                                % (len(self.vocab), self.vocab_size))
         else:
-            self.vocab = self.build_vocab(args.train_path, args.prompt_id,
+            self.vocab = self.build_vocab(self.train_path, args.prompt_id,
                                           args.maxlen, args.vocab_size)
             if len(self.vocab) < self.vocab_size:
                 logger.warning('The vocabulary includes only %i words (less than %i)'

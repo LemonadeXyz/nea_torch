@@ -21,16 +21,14 @@ logger = logging.getLogger(__name__)
 # Parse arguments
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-tr", "--train", dest="train_path", type=str, metavar='<str>', required=True,
-                    help="The path to the training set")
-parser.add_argument("-tu", "--tune", dest="dev_path", type=str, metavar='<str>', required=True,
-                    help="The path to the development set")
-parser.add_argument("-ts", "--test", dest="test_path", type=str, metavar='<str>', required=True,
-                    help="The path to the test set")
+parser.add_argument("-dp", "--data-pth", dest="data_path", type=str, metavar='<str>', required=True,
+                    help="The path to the data-set")
+parser.add_argument("-f", "--fold", dest="fold_num", type=str, metavar='<str>', required=True,
+                    help="The number of the data folder")
 parser.add_argument("-o", "--out-dir", dest="out_dir_path", type=str, metavar='<str>', required=True,
                     help="The path to the output directory")
-parser.add_argument("-p", "--prompt", dest="prompt_id", type=int, metavar='<int>', required=False,
-                    help="Promp ID for ASAP dataset. '0' means all prompts.")
+parser.add_argument("-p", "--prompt", dest="prompt_id", type=int, metavar='<int>', required=True, default=0,
+                    help="Promp ID for ASAP dataset.")
 parser.add_argument("-t", "--type", dest="model_type", type=str, metavar='<str>', default='regp',
                     help="Model type (reg|regp|breg|bregp) (default=regp)")
 parser.add_argument("-u", "--rec-unit", dest="rnn_type", type=str, metavar='<str>', default='lstm',
@@ -73,9 +71,9 @@ args = parser.parse_args()
 out_dir = args.out_dir_path
 mkdir_p(out_dir + '/preds')
 mkdir_p(out_dir + '/saved_dict')
-set_logger(out_dir)
 
 config = Configuration(args)
+set_logger(config)
 print_args(args)
 
 assert args.model_type in {'reg', 'regp', 'breg', 'bregp'}
@@ -87,11 +85,10 @@ assert args.aggregation in {'mot', 'attsum', 'attmean'}
 if args.seed > 0:
     np.random.seed(args.seed)
 
-if not args.prompt_id:
-    raise NotImplementedError
+assert args.prompt_id > 0, 'Given prompt ID INVALID!'
 
-assert args.cnn_dim > 0, 'This NEA version dose NOT support network without CNN'
-assert args.rnn_dim > 0, 'This NEA version dose NOT support network without RNN'
+assert args.cnn_dim > 0, 'This NEA version dose NOT support network without CNN!'
+assert args.rnn_dim > 0, 'This NEA version dose NOT support network without RNN!'
 
 assert args.cnn_window_size % 2 != 0, 'EVEN win_size can NOT give an output with the SAME size as input, make it ODD!'
 
@@ -122,9 +119,9 @@ params = {'batch_size': args.batch_size,
 config.num_epochs = args.num_epochs
 
 # Datasets
-train_set = DatasetNea(config, args.train_path)
-dev_set = DatasetNea(config, args.dev_path)
-test_set = DatasetNea(config, args.test_path)
+train_set = DatasetNea(config, config.train_path)
+dev_set = DatasetNea(config, config.dev_path)
+test_set = DatasetNea(config, config.test_path)
 
 if args.maxlen == 0.:
     config.overal_maxlen = max(train_set.true_maxlen, dev_set.true_maxlen, test_set.true_maxlen)

@@ -58,7 +58,7 @@ def read_dataset(file_path, output_path, prompt_id, maxlen, to_tokenize, to_lowe
                 prompt_ids.append(essay_set)
 
     logger.info('Saving essays to: ' + essays_path)
-    np.savetxt(essays_path, np.array(essays, dtype=object), fmt='%s')
+    # np.savetxt(essays_path, np.array(essays, dtype=object), fmt='%s')
     logger.info('Total number of essays: %d' % len(essays))
 
     return essays, scores, prompt_ids, true_maxlen
@@ -78,12 +78,12 @@ def collate_fn(batch, config):
 
 
 class DatasetNea(Dataset):
-    def __init__(self, config, data_path, to_tokenize=True, to_lower=True):
+    def __init__(self, config, source_path, to_tokenize=True, to_lower=True):
 
-        self.data_path = data_path
+        self.source_path = source_path
         self.vocab = config.vocab
         self.essays, self.scores, self.prompt_ids, self.true_maxlen = read_dataset(
-            data_path, config.out_dir, config.prompt_id, config.default_maxlen, to_tokenize, to_lower)
+            source_path, config.out_dir, config.prompt_id, config.default_maxlen, to_tokenize, to_lower)
         self.asap_ranges = {
             0: (0, 60),
             1: (2, 12),
