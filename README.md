@@ -15,7 +15,7 @@ Click [here](https://github.com/nusnlp/nea) to learn about the old NEA, a classi
 - sci-kit-learn 0.24.1
 - pytorch 1.7.1
 
-***NOTE：*** NEA-torch is now only tested on **CPU**! GPU-related operations are taken into account when building the project, but successful execution cannot be guaranteed.
+***NOTE：*** NEA-torch is now only tested on ***CPU*** ! GPU-related operations are taken into account when building the project, but successful execution is ***NOT*** guaranteed.
 
 ## Set up
 
@@ -33,8 +33,6 @@ Regarding the related operations of data downloading and preprocessing, the meth
 cd data
 python preprocess_asap.py -i training_set_rel3.tsv
  ```
-Or you can directly use the preprocessed [data](https://github.com/nusnlp/nea/tree/master/data) to run the code (this is what I did actually).
-
 ### Options
 
 You can see the list of available options by running:

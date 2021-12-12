@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 import torch.nn as nn
-from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
+from torch.nn.utils.rnn import pack_padded_sequence
 
 
 class Model(nn.Module):
@@ -87,7 +87,6 @@ class Model(nn.Module):
             x_packed, (h_n, c_n) = self.rnn(x_packed, hidden)
         else:
             x_packed, h_n = self.rnn(x_packed, hidden)
-        # x, _ = pad_packed_sequence(x_packed, batch_first=False)
 
         h_n = self.drop(h_n)
         h_n = h_n.view(self.num_layers, 2, -1, self.hidden_size)

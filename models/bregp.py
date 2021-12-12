@@ -73,6 +73,20 @@ class Model(nn.Module):
             return weight.new_zeros((2 * config.rnn_nlayers, config.batch_size, config.hidden_size),
                                     requires_grad=requires_grad)
 
+    def mean_over_time(self, seqs, seq_lens, batch_first=True):
+        if batch_first:
+            batch_size = seqs.size(0)
+        else:
+            batch_size = seqs.size(1)
+            seqs = seqs.permute(1, 0, 2)
+        input_size = seqs.size(-1)
+
+        mot = torch.zeros(batch_size, input_size)
+        for i in range(batch_size):
+            mot[i, :] = torch.mean(seqs[i, :seq_lens[i], :], dim=0)
+
+        return mot
+
     def forward(self, ipts, hidden, seq_lengths):
         x = self.embedding(ipts)
         x = x.unsqueeze(1)
@@ -80,19 +94,30 @@ class Model(nn.Module):
         x = x.squeeze(3)
         x = x.permute(0, 2, 1)
 
+        # print('[Before packed and rnn] x.size() =', x.size())
+
         x_packed = pack_padded_sequence(x, seq_lengths, batch_first=False,
                                         enforce_sorted=False)
         if self.rnn_type == 'LSTM':
             x_packed, _ = self.rnn(x_packed, hidden)
         else:
             x_packed, _ = self.rnn(x_packed, hidden)
-        x, _ = pad_packed_sequence(x_packed, batch_first=False)
+        x_unpacked, lens_unpacked = pad_packed_sequence(x_packed, batch_first=False)
 
-        x = self.drop(x)
+        # print('x_unpacked.size() =', x_unpacked.size())
+        # print('lens_unpacked.size() =', lens_unpacked.size())
+
+        x = self.drop(x_unpacked)
         x = x.view(x.size(0), x.size(1), 2, self.hidden_size)
+        # print('[after view] x.size() =', x.size())
         x_for, x_back = x[:, :, 0, :], x[:, :, 1, :]
-        mot_for = torch.mean(x_for, dim=0)
-        mot_back = torch.mean(x_back, dim=0)
+
+        # print('[after split] x_for.size() =', x_for.size())
+        # print('[after split] x_back.size() =', x_back.size())
+
+        # 需要进一步测试
+        mot_for = self.mean_over_time(x_for, lens_unpacked, batch_first=False)
+        mot_back = self.mean_over_time(x_back, lens_unpacked, batch_first=False)
         mot_merged = torch.cat((mot_for, mot_back), dim=-1)
         out = self.linear(mot_merged)
         out = torch.sigmoid(out)

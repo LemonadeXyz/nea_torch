@@ -70,24 +70,43 @@ class Model(nn.Module):
             return weight.new_zeros((config.rnn_nlayers, config.batch_size, config.hidden_size),
                                     requires_grad=requires_grad)
 
+    def mean_over_time(self, seqs, seq_lens, batch_first=True):
+        """
+        :param seqs: Tensor whose size = [seq_len, batch_size, input_size] or [batch_size, seq_len, input_size]
+        :param seq_lens: Tensor or list-like object describe REAL length of each sequence in `seqs`
+        :param batch_first: True is seqs.size() = [batch_size, seq_len, input_size] else False
+        :return: MeanOverTime value considering REAL length of sequence (or say, supporting mask-zero as Keras dose)
+        """
+        if batch_first:
+            batch_size = seqs.size(0)
+        else:
+            batch_size = seqs.size(1)
+            seqs = seqs.permute(1, 0, 2)
+        input_size = seqs.size(-1)
+
+        mot = torch.zeros(batch_size, input_size)
+        for i in range(batch_size):
+            mot[i, :] = torch.mean(seqs[i, :seq_lens[i], :], dim=0)
+
+        return mot
+
     def forward(self, ipts, hidden, seq_lengths):
         x = self.embedding(ipts)
         x = x.unsqueeze(1)
         x = self.conv(x)
         x = x.squeeze(3)
         x = x.permute(0, 2, 1)
-
         x_packed = pack_padded_sequence(x, seq_lengths, batch_first=False,
                                         enforce_sorted=False)
         if self.rnn_type == 'LSTM':
             x_packed, _ = self.rnn(x_packed, hidden)
         else:
             x_packed, _ = self.rnn(x_packed, hidden)
-        x, _ = pad_packed_sequence(x_packed, batch_first=False)
+        x_unpacked, lens_unpacked = pad_packed_sequence(x_packed, batch_first=False)
 
-        x = self.drop(x)
+        x = self.drop(x_unpacked)
+        x = self.mean_over_time(x, lens_unpacked, batch_first=False)  # MeanOverTime Pooling
         x = self.linear(x)
-        x = torch.mean(x, dim=0)  # MeanOverTime Pooling
         x = torch.sigmoid(x)
 
         return x.squeeze()

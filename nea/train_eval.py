@@ -26,14 +26,17 @@ def train(config, model, train_generator, dev_generator, test_generator):
     total_batch = 0
 
     best_dev_loss = float('inf')
+    best_dev_metric = -1
     best_dev_qwk = -1
     best_dev_correl = (-1., -1., -1.)
     best_dev_kappa = (-1., -1.)
     best_dev_epoch = -1
 
+    test_echo_metric = -1
     test_echo_correl = (-1., -1., -1.)
     test_echo_kappa = (-1., -1.)
 
+    best_test_metric = -1
     best_test_qwk = -1
     best_test_correl = (-1., -1., -1.)
     best_test_kappa = (-1., -1.)
@@ -87,16 +90,19 @@ def train(config, model, train_generator, dev_generator, test_generator):
                 writer.add_scalar("qwk/dev", dev_kappa[0], total_batch)
 
                 if dev_kappa[0] > best_dev_qwk:
+                    best_dev_epoch = epoch + 1
+                    best_dev_metric = dev_metric
                     best_dev_qwk = dev_kappa[0]
                     best_dev_correl = dev_correl
                     best_dev_kappa = dev_kappa
-                    best_dev_epoch = epoch + 1
 
+                    test_echo_metric = test_metric
                     test_echo_correl = test_correl
                     test_echo_kappa = test_kappa
 
                 if test_kappa[0] > best_test_qwk:
                     best_test_qwk = test_kappa[0]
+                    best_test_metric = test_metric
                     best_test_correl = test_correl
                     best_test_kappa = test_kappa
                     best_test_epoch = epoch + 1
@@ -113,18 +119,22 @@ def train(config, model, train_generator, dev_generator, test_generator):
         # scheduler.step()
     writer.close()
 
-    msg_best_dev = '[Best of DEV @ep{0:>2}]\n ' \
-                   'QWK: {1:>6.4}, LWK: {2:>5.3}, PRS: {3:>4.3}, SPR: {4:>4.3}, Tau: {5:>4.3}\n' \
-                   '[TEST(echo)] \n ' \
-                   'QWK: {6:>6.4}, LWK: {7:>5.3}, PRS: {8:>4.3}, SPR: {9:>4.3}, Tau: {10:>4.3}'
-    logger.info(msg_best_dev.format(best_dev_epoch, best_dev_kappa[0], best_dev_kappa[1],
-                                    best_dev_correl[0], best_dev_correl[1], best_dev_correl[2],
-                                    test_echo_kappa[0], test_echo_kappa[1],
-                                    test_echo_correl[0], test_echo_correl[1], test_echo_correl[2]))
+    msg_best_dev = '[Best DEV @ep{0:>2}]  ' \
+                   'metric: {1:>5.4}, QWK: {2:>6.4}, LWK: {3:>5.3}, PRS: {4:>4.3}, SPR: {5:>4.3}, Tau: {6:>4.3}'
 
-    msg_best_test = '[Best of TEST @ep{0:>2}]\n' \
-                    ' QWK: {1:>6.4}, LWK: {2:>5.3}, PRS: {3:>4.3}, SPR: {4:>4.3}, Tau: {5:>4.3}'
-    logger.info(msg_best_test.format(best_test_epoch, best_test_kappa[0], best_test_kappa[1],
+    msg_echo_test = '[TEST(echo)]  ' \
+                    'metric: {0:>5.4}, QWK: {1:>6.4}, LWK: {2:>5.3}, PRS: {3:>4.3}, SPR: {4:>4.3}, Tau: {5:>4.3}'
+
+    msg_best_test = '[Best TEST @ep{0:>2}]  ' \
+                    'metric: {1:>5.4}, QWK: {2:>6.4}, LWK: {3:>5.3}, PRS: {4:>4.3}, SPR: {5:>4.3}, Tau: {6:>4.3}'
+
+    logger.info(msg_best_dev.format(best_dev_epoch, best_dev_metric, best_dev_kappa[0], best_dev_kappa[1],
+                                    best_dev_correl[0], best_dev_correl[1], best_dev_correl[2]))
+
+    logger.info(msg_echo_test.format(test_echo_metric, test_echo_kappa[0], test_echo_kappa[1],
+                                     test_echo_correl[0], test_echo_correl[1], test_echo_correl[2]))
+
+    logger.info(msg_best_test.format(best_test_epoch, best_test_metric, best_test_kappa[0], best_test_kappa[1],
                                      best_test_correl[0], best_test_correl[1], best_test_correl[2]))
 
     test(config, model, test_generator)
@@ -136,8 +146,8 @@ def test(config, model, test_generator):
     start_time = time.time()
     test_loss, test_metric, test_correl, test_kappa = evaluate(config, model, test_generator)
 
-    msg_info = '[TEST(final)] \n' \
-               ' loss: {0:>5.4}, metric: {1:>5.4}, QWK: {2:>6.4}, LWK: {3:>5.3}, ' \
+    msg_info = '[TEST (final)]  ' \
+               'loss: {0:>5.4}, metric: {1:>5.4}, QWK: {2:>6.4}, LWK: {3:>5.3}, ' \
                'PRS: {4:>4.3}, SPR: {5:>4.3}, Tau: {6:>4.3}'
     logger.info(msg_info.format(test_loss, test_metric, test_kappa[0], test_kappa[1],
                                 test_correl[0], test_correl[1], test_correl[2]))

@@ -72,8 +72,8 @@ out_dir = args.out_dir_path
 mkdir_p(out_dir + '/preds')
 mkdir_p(out_dir + '/saved_dict')
 
+set_logger(out_dir, args.prompt_id, args.fold_num)
 config = Configuration(args)
-set_logger(config)
 print_args(args)
 
 assert args.model_type in {'reg', 'regp', 'breg', 'bregp'}
@@ -127,8 +127,6 @@ if args.maxlen == 0.:
     config.overal_maxlen = max(train_set.true_maxlen, dev_set.true_maxlen, test_set.true_maxlen)
 else:
     config.overal_maxlen = args.maxlen
-
-print('config.overal_maxlen =', config.overal_maxlen)
 
 # Generators
 train_generator = DataLoader(train_set, **params)

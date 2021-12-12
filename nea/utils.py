@@ -21,18 +21,18 @@ from nea.quadratic_weighted_kappa import linear_weighted_kappa as lwk
 logger = logging.getLogger(__name__)
 
 
-def set_logger(config):
+def set_logger(out_dir, prompt_id, fold_num):
     console_format = BColors.OKBLUE + '[%(levelname)s]' + BColors.ENDC + ' (%(name)s) %(message)s'
-    # datefmt='%Y-%m-%d %Hh-%Mm-%Ss'
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
     console = logging.StreamHandler()
     console.setLevel(logging.DEBUG)
     console.setFormatter(logging.Formatter(console_format))
     logger.addHandler(console)
-    if config.out_dir:
+    if out_dir:
         file_format = '[%(levelname)s] (%(name)s) %(message)s'
-        log_file = logging.FileHandler(config.out_dir + f'/log{config.prompt_id}_{config.fold_num}.txt', mode='w')
+        time_suffix = time.strftime('%m-%d_%H.%M', time.localtime())
+        log_file = logging.FileHandler(out_dir + f'/log_p{prompt_id}_f{fold_num}_{time_suffix}.txt', mode='w')
         log_file.setLevel(logging.DEBUG)
         log_file.setFormatter(logging.Formatter(file_format))
         logger.addHandler(log_file)
@@ -230,19 +230,13 @@ class Configuration(object):
 
         # model setting
         self.window_size = args.cnn_window_size
-        # ====================================================== #
         self.num_filters = args.cnn_dim
-        # self.num_filters = 64  # 测试是否能跑通用的参数
-        # ====================================================== #
         self.cnn_stride = 1
         self.cnn_pad_size = get_cnn_padding_size((0, 0), (0, 0), (args.cnn_window_size, 0),
                                                  (self.cnn_stride, self.cnn_stride))
         self.rnn_type = args.rnn_type.upper()  # upper to enable initialize rnn with getattr()
         self.rnn_nlayers = args.rnn_nlr
-        # ====================================================== #
         self.hidden_size = args.rnn_dim
-        # self.hidden_size = 64  # 测试是否能跑通用的参数
-        # ====================================================== #
         self.dropout_W = 0.5  # dropout rate (before feeding rnn)
         self.dropout_U = 0.1 if args.rnn_nlr > 1 else 0.  # dropout rate (between rnn layers)
         self.skip_init_bias = args.skip_init_bias
@@ -255,6 +249,7 @@ class Configuration(object):
             logger.info('  Done')
             self.emb_dim = self.embedding_pre.size(1)
         else:
+            self.embedding_pre = None
             self.emb_dim = args.emb_dim
 
         # optimizer setting
@@ -262,8 +257,8 @@ class Configuration(object):
         self.clipvalue = 0
         self.clipnorm = 10
 
-        self.num_epochs = 20
-        self.require_improvement = 1000
+        self.num_epochs = 50
+        self.require_improvement = 150
 
         self.metric = args.loss
 
